@@ -1,253 +1,377 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bingo Board</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16231d">
+  <title>Bodycam Bingo</title>
   <style>
     :root {
-      --bg: #f5f5f5;
-      --card: #ffffff;
-      --border: #222222;
-      --marked: #37b24d;
-      --marked-text: #ffffff;
-      --button: #222222;
-      --button-text: #ffffff;
+      color-scheme: dark;
+      --page: #111a16;
+      --panel: #1a2721;
+      --square: #f4efe2;
+      --square-hover: #fffaf0;
+      --ink: #172019;
+      --line: #806f4e;
+      --gold: #f2c14e;
+      --green: #2f9e63;
+      --green-dark: #1f7548;
+      --muted: #b9c2bc;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
-      margin: 0;
+      min-width: 320px;
       min-height: 100vh;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--bg);
-      color: #111;
-      display: flex;
-      justify-content: center;
-      padding: 24px 12px;
+      margin: 0;
+      background:
+        radial-gradient(circle at 50% -20%, #2b493b 0, transparent 42rem),
+        var(--page);
+      color: #fff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    .app {
-      width: min(900px, 100%);
+    main {
+      width: min(94vw, 860px);
+      margin: 0 auto;
+      padding: clamp(1.25rem, 4vw, 3rem) 0 2.5rem;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .eyebrow {
+      margin: 0 0 .25rem;
+      color: var(--gold);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
     }
 
     h1 {
-      text-align: center;
-      margin: 0 0 18px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 7vw, 4.6rem);
+      line-height: .95;
+      letter-spacing: -.045em;
+    }
+
+    .subtitle {
+      max-width: 29rem;
+      margin: .8rem 0 0;
+      color: var(--muted);
+      font-size: clamp(.85rem, 2.2vw, 1rem);
+      line-height: 1.45;
     }
 
     .controls {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 18px;
+      flex: 0 0 auto;
+      gap: .6rem;
     }
 
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 16px;
-      font-weight: 700;
+    .action {
+      min-height: 44px;
+      padding: .7rem 1rem;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: .65rem;
+      background: #26362e;
+      color: #fff;
+      font: inherit;
+      font-size: .9rem;
+      font-weight: 750;
       cursor: pointer;
-      background: var(--button);
-      color: var(--button-text);
+      transition: background .16s ease, border-color .16s ease, transform .08s ease;
     }
 
-    button.secondary {
-      background: #666;
+    .action.primary {
+      border-color: #e7b83f;
+      background: var(--gold);
+      color: #201a0c;
     }
 
-    .status {
-      text-align: center;
-      margin: 0 0 12px;
-      color: #555;
-      font-size: 14px;
+    .action:hover { background: #33483d; }
+    .action.primary:hover { background: #ffd66c; }
+    .action:active { transform: translateY(1px); }
+    .action:focus-visible,
+    .square:focus-visible {
+      outline: 3px solid #9ed9ff;
+      outline-offset: 3px;
+    }
+
+    .board-frame {
+      padding: clamp(.45rem, 1.8vw, .85rem);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 1rem;
+      background: var(--panel);
+      box-shadow: 0 1.5rem 4rem rgba(0,0,0,.32);
     }
 
     .board {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      width: 100%;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(2px, .6vw, 5px);
     }
 
-    .cell {
-      aspect-ratio: 1 / 1;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      background: var(--card);
+    .square {
       display: flex;
       align-items: center;
       justify-content: center;
+      aspect-ratio: 1;
+      min-width: 0;
+      padding: clamp(.22rem, 1.1vw, .75rem);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: clamp(.22rem, .7vw, .5rem);
+      background: var(--square);
+      color: var(--ink);
+      font: inherit;
+      font-size: clamp(.56rem, 1.8vw, 1rem);
+      font-weight: 720;
+      line-height: 1.18;
       text-align: center;
-      padding: 8px;
-      font-weight: 700;
-      font-size: clamp(11px, 2vw, 18px);
-      line-height: 1.2;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
       cursor: pointer;
       user-select: none;
-      overflow-wrap: anywhere;
-      transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .14s ease, color .14s ease, transform .08s ease;
     }
 
-    .cell:active {
-      transform: scale(0.98);
+    .square:hover { background: var(--square-hover); }
+    .square:active { transform: scale(.985); }
+    .square.marked {
+      border-color: var(--green-dark);
+      background: var(--green);
+      color: #fff;
+      text-shadow: 0 1px 1px rgba(0,0,0,.18);
     }
 
-    .cell.marked {
-      background: var(--marked);
-      color: var(--marked-text);
+    .square.free {
+      position: relative;
+      background: #f7dda0;
+      color: var(--ink);
     }
 
-    .cell textarea {
-      width: 100%;
-      height: 100%;
-      resize: none;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      font: inherit;
+    .square.free::before {
+      position: absolute;
+      inset: .35rem;
+      border: 1px dashed rgba(23,32,25,.42);
+      border-radius: .35rem;
+      content: "";
+    }
+
+    .free-label {
+      position: relative;
+      z-index: 1;
+      display: block;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .square.free.marked {
+      background: var(--green-dark);
+      color: #fff;
+    }
+
+    .square.free.marked::before {
+      border-color: rgba(255,255,255,.48);
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin: .75rem .2rem 0;
+      color: var(--muted);
+      font-size: .82rem;
       text-align: center;
-      color: inherit;
-      padding: 4px;
     }
 
-    .cell.editing {
-      cursor: text;
-      user-select: text;
-      background: #fffbe6;
+    @media (max-width: 680px) {
+      header { align-items: stretch; flex-direction: column; }
+      .controls { width: 100%; }
+      .action { flex: 1; padding-inline: .65rem; }
     }
 
-    @media (max-width: 600px) {
-      body {
-        padding: 14px 6px;
-      }
-
-      .board {
-        gap: 3px;
-      }
-
-      .cell {
-        border-width: 1px;
-        border-radius: 5px;
-        padding: 4px;
-      }
-
-      button {
-        font-size: 14px;
-        padding: 9px 12px;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <h1>Bodycam Bingo</h1>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">Keep your eyes on the footage</p>
+        <h1>Bodycam Bingo</h1>
+        <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
+      </div>
+      <div class="controls" aria-label="Board controls">
+        <button class="action primary" id="new-board" type="button">New Board</button>
+        <button class="action" id="reset-marks" type="button">Reset Marks</button>
+      </div>
+    </header>
 
-    <div class="controls">
-      <button id="editButton">Edit Board</button>
-      <button id="resetButton" class="secondary">Reset Marks</button>
-    </div>
-
-    <p id="status" class="status">
-      Credit to KPW and RW. Click a square to mark it. Use Edit Board to change the text.
-    </p>
-
-    <div id="board" class="board"></div>
+    <section class="board-frame" aria-label="Bodycam Bingo game">
+      <div class="board" id="board" role="grid" aria-label="5 by 5 bingo board"></div>
+    </section>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
   </main>
 
+  <script src="squares.js"></script>
   <script>
-    const board = document.getElementById("board");
-    const editButton = document.getElementById("editButton");
-    const resetButton = document.getElementById("resetButton");
-    const status = document.getElementById("status");
+    (() => {
+      "use strict";
 
-    let editing = false;
+      const BOARD_SIZE = 25;
+      const CENTER_INDEX = 12;
+      const STORAGE_KEY = "bodycam-bingo-v3";
+      const boardElement = document.getElementById("board");
+      const statusElement = document.getElementById("status");
+      const newBoardButton = document.getElementById("new-board");
+      const resetMarksButton = document.getElementById("reset-marks");
 
-    // Change these default labels if you want the board pre-filled.
-    const defaultSquares = Array.from(
-      { length: 25 },
-      (_, index) => `Square ${index + 1}`
-    );
+      if (!window.BINGO_DATA || !Array.isArray(window.BINGO_DATA.phrases)) {
+        showFatalError("Could not load the phrase list. Make sure squares.js is beside index.html.");
+        return;
+      }
 
-    // Save the square text in the browser so it survives page refreshes.
-    let squareText =
-      JSON.parse(localStorage.getItem("bingoSquareText")) || defaultSquares;
+      const phrasePool = [...new Set(
+        window.BINGO_DATA.phrases
+          .map((phrase) => String(phrase).trim())
+          .filter(Boolean)
+      )];
 
-    // Save marked squares too.
-    let markedSquares =
-      JSON.parse(localStorage.getItem("bingoMarkedSquares")) ||
-      Array(25).fill(false);
+      if (phrasePool.length < BOARD_SIZE - 1) {
+        showFatalError(`The phrase list needs at least ${BOARD_SIZE - 1} unique entries.`);
+        return;
+      }
 
-    function saveBoard() {
-      localStorage.setItem("bingoSquareText", JSON.stringify(squareText));
-      localStorage.setItem(
-        "bingoMarkedSquares",
-        JSON.stringify(markedSquares)
-      );
-    }
+      let state = loadState();
 
-    function renderBoard() {
-      board.innerHTML = "";
+      function shuffled(items) {
+        const copy = [...items];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
 
-      squareText.forEach((text, index) => {
-        const cell = document.createElement("div");
-        cell.className = "cell";
+      function makeNewState() {
+        return {
+          phrases: shuffled(phrasePool).slice(0, BOARD_SIZE - 1),
+          marked: []
+        };
+      }
 
-        if (markedSquares[index]) {
-          cell.classList.add("marked");
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          const validPhrases = Array.isArray(saved?.phrases)
+            && saved.phrases.length === BOARD_SIZE - 1
+            && new Set(saved.phrases).size === BOARD_SIZE - 1
+            && saved.phrases.every((phrase) => phrasePool.includes(phrase));
+          if (validPhrases) {
+            return {
+              phrases: saved.phrases,
+              marked: Array.isArray(saved.marked)
+                ? saved.marked.filter((index) => Number.isInteger(index) && index >= 0 && index < BOARD_SIZE)
+                : []
+            };
+          }
+        } catch (error) {
+          console.warn("Saved board could not be read.", error);
+        }
+        return makeNewState();
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function phraseAt(boardIndex) {
+        return state.phrases[boardIndex < CENTER_INDEX ? boardIndex : boardIndex - 1];
+      }
+
+      function renderBoard() {
+        boardElement.replaceChildren();
+        const fragment = document.createDocumentFragment();
+
+        for (let index = 0; index < BOARD_SIZE; index += 1) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "square";
+          cell.setAttribute("role", "gridcell");
+
+          if (index === CENTER_INDEX) {
+            const isMarked = state.marked.includes(index);
+            cell.classList.add("free");
+            cell.classList.toggle("marked", isMarked);
+            cell.setAttribute("aria-pressed", String(isMarked));
+            cell.setAttribute("aria-label", `Free space: Swears at Cop. ${isMarked ? "Marked" : "Not marked"}`);
+            cell.innerHTML = '<span class="free-label">Free Space<br>Swears at Cop</span>';
+            cell.addEventListener("click", () => toggleSquare(index));
+          } else {
+            const phrase = phraseAt(index);
+            const isMarked = state.marked.includes(index);
+            cell.textContent = phrase;
+            cell.classList.toggle("marked", isMarked);
+            cell.setAttribute("aria-pressed", String(isMarked));
+            cell.setAttribute("aria-label", `${phrase}. ${isMarked ? "Marked" : "Not marked"}`);
+            cell.addEventListener("click", () => toggleSquare(index));
+          }
+
+          fragment.appendChild(cell);
         }
 
-        if (editing) {
-          cell.classList.add("editing");
+        boardElement.appendChild(fragment);
+      }
 
-          const textarea = document.createElement("textarea");
-          textarea.value = text;
-          textarea.setAttribute("aria-label", `Bingo square ${index + 1}`);
+      function toggleSquare(index) {
+        const marked = new Set(state.marked);
+        if (marked.has(index)) marked.delete(index);
+        else marked.add(index);
+        state.marked = [...marked].sort((a, b) => a - b);
+        saveState();
+        renderBoard();
+      }
 
-          textarea.addEventListener("input", (event) => {
-            squareText[index] = event.target.value;
-            saveBoard();
-          });
+      function announce(message) {
+        statusElement.textContent = "";
+        requestAnimationFrame(() => { statusElement.textContent = message; });
+      }
 
-          cell.appendChild(textarea);
-        } else {
-          cell.textContent = text;
-
-          cell.addEventListener("click", () => {
-            markedSquares[index] = !markedSquares[index];
-            saveBoard();
-            renderBoard();
-          });
-        }
-
-        board.appendChild(cell);
+      newBoardButton.addEventListener("click", () => {
+        state = makeNewState();
+        saveState();
+        renderBoard();
+        announce("A new random board is ready.");
       });
-    }
 
-    editButton.addEventListener("click", () => {
-      editing = !editing;
+      resetMarksButton.addEventListener("click", () => {
+        state.marked = [];
+        saveState();
+        renderBoard();
+        announce("All marks were cleared.");
+      });
 
-      editButton.textContent = editing ? "Done Editing" : "Edit Board";
-      status.textContent = editing
-        ? "Type directly into each square. Your text saves automatically."
-        : "Click a square to mark it. Use Edit Board to change the text.";
+      function showFatalError(message) {
+        boardElement.innerHTML = `<p style="grid-column:1/-1;padding:2rem;text-align:center">${message}</p>`;
+        newBoardButton.disabled = true;
+        resetMarksButton.disabled = true;
+      }
 
+      saveState();
       renderBoard();
-    });
-
-    resetButton.addEventListener("click", () => {
-      markedSquares = Array(25).fill(false);
-      saveBoard();
-      renderBoard();
-    });
-
-    renderBoard();
+    })();
   </script>
 </body>
 </html>
