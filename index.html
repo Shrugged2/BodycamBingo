@@ -215,7 +215,7 @@
       align-items: center;
       justify-content: center;
       gap: .55rem;
-      margin: 0 0 .8rem;
+      margin: .8rem 0 0;
     }
 
     .seed-panel label {
@@ -331,15 +331,15 @@
       </div>
     </header>
 
+    <section class="board-frame" aria-label="Bodycam Bingo game">
+      <div class="board" id="board" role="grid" aria-label="5 by 5 bingo board"></div>
+    </section>
+
     <div class="seed-panel" aria-label="Board number controls">
       <label for="board-seed">Board #</label>
       <input class="seed-input" id="board-seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off" aria-describedby="status">
       <button class="action" id="load-seed" type="button">Load Board</button>
     </div>
-
-    <section class="board-frame" aria-label="Bodycam Bingo game">
-      <div class="board" id="board" role="grid" aria-label="5 by 5 bingo board"></div>
-    </section>
     <p class="status" id="status" role="status" aria-live="polite"></p>
   </main>
 
