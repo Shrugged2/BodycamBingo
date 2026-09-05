@@ -227,7 +227,7 @@
   <main>
     <header>
       <div>
-        <p class="eyebrow">we didn't do anything wrong</p>
+        <p class="eyebrow">Keep your eyes on the footage</p>
         <h1>Bodycam Bingo</h1>
         <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
       </div>
@@ -255,6 +255,7 @@
       const statusElement = document.getElementById("status");
       const newBoardButton = document.getElementById("new-board");
       const resetMarksButton = document.getElementById("reset-marks");
+      let textFitFrame;
 
       if (!window.BINGO_DATA || !Array.isArray(window.BINGO_DATA.phrases)) {
         showFatalError("Could not load the phrase list. Make sure squares.js is beside index.html.");
@@ -351,6 +352,26 @@
         }
 
         boardElement.appendChild(fragment);
+        fitBoardText();
+      }
+
+      function fitBoardText() {
+        cancelAnimationFrame(textFitFrame);
+        textFitFrame = requestAnimationFrame(() => {
+          boardElement.querySelectorAll(".square").forEach((cell) => {
+            cell.style.removeProperty("font-size");
+            let fontSize = parseFloat(getComputedStyle(cell).fontSize);
+            const minimumFontSize = 4;
+
+            while (
+              fontSize > minimumFontSize &&
+              (cell.scrollHeight > cell.clientHeight || cell.scrollWidth > cell.clientWidth)
+            ) {
+              fontSize = Math.max(minimumFontSize, fontSize - 0.25);
+              cell.style.fontSize = `${fontSize}px`;
+            }
+          });
+        });
       }
 
       function toggleSquare(index) {
@@ -387,6 +408,7 @@
         resetMarksButton.disabled = true;
       }
 
+      window.addEventListener("resize", fitBoardText);
       saveState();
       renderBoard();
     })();
