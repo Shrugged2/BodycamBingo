@@ -75,6 +75,8 @@
     .controls {
       display: flex;
       flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
       gap: .6rem;
     }
 
@@ -155,6 +157,20 @@
       text-shadow: 0 1px 1px rgba(0,0,0,.18);
     }
 
+    .square.winner {
+      position: relative;
+      z-index: 1;
+      box-shadow:
+        inset 0 0 0 clamp(2px, .45vw, 4px) var(--gold),
+        0 0 1rem rgba(242,193,78,.9);
+      animation: winning-line-pulse .85s ease-in-out infinite alternate;
+    }
+
+    @keyframes winning-line-pulse {
+      from { box-shadow: inset 0 0 0 2px var(--gold), 0 0 .35rem rgba(242,193,78,.55); }
+      to { box-shadow: inset 0 0 0 4px var(--gold), 0 0 1.25rem rgba(242,193,78,1); }
+    }
+
     .square.free {
       position: relative;
       background: #f7dda0;
@@ -192,6 +208,45 @@
       color: var(--muted);
       font-size: .82rem;
       text-align: center;
+    }
+
+    .seed-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      margin: 0 0 .8rem;
+    }
+
+    .seed-panel label {
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 750;
+    }
+
+    .seed-input {
+      width: 8.5rem;
+      min-height: 42px;
+      padding: .6rem .7rem;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: .6rem;
+      background: #f4efe2;
+      color: var(--ink);
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+
+    .seed-input:focus-visible {
+      outline: 3px solid #9ed9ff;
+      outline-offset: 2px;
+    }
+
+    :fullscreen main {
+      width: min(98vw, 1100px);
+      padding-top: 1rem;
     }
 
     .confetti-layer {
@@ -236,6 +291,9 @@
       header { align-items: stretch; flex-direction: column; }
       .controls { width: 100%; }
       .action { flex: 1; padding-inline: .65rem; }
+      .seed-panel { gap: .35rem; }
+      .seed-input { min-width: 0; width: 7.5rem; }
+      .seed-panel .action { flex: 0 0 auto; }
       .board-frame {
         padding: clamp(2px, 1vw, 5px);
         border-radius: .6rem;
@@ -253,6 +311,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+      .square.winner { animation: none; }
       .cop-confetti { animation-duration: .8s; }
     }
   </style>
@@ -261,15 +320,22 @@
   <main>
     <header>
       <div>
-        <p class="eyebrow">we didn't do anything wrong</p>
+        <p class="eyebrow">Keep your eyes on the footage</p>
         <h1>Bodycam Bingo</h1>
         <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
       </div>
       <div class="controls" aria-label="Board controls">
         <button class="action primary" id="new-board" type="button">New Board</button>
         <button class="action" id="reset-marks" type="button">Reset Marks</button>
+        <button class="action" id="fullscreen" type="button" aria-pressed="false">Full Screen</button>
       </div>
     </header>
+
+    <div class="seed-panel" aria-label="Board number controls">
+      <label for="board-seed">Board #</label>
+      <input class="seed-input" id="board-seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off" aria-describedby="status">
+      <button class="action" id="load-seed" type="button">Load Board</button>
+    </div>
 
     <section class="board-frame" aria-label="Bodycam Bingo game">
       <div class="board" id="board" role="grid" aria-label="5 by 5 bingo board"></div>
@@ -289,6 +355,9 @@
       const statusElement = document.getElementById("status");
       const newBoardButton = document.getElementById("new-board");
       const resetMarksButton = document.getElementById("reset-marks");
+      const fullscreenButton = document.getElementById("fullscreen");
+      const seedInput = document.getElementById("board-seed");
+      const loadSeedButton = document.getElementById("load-seed");
       let textFitFrame;
       let celebratedBingos = new Set();
       const bingoLines = [
@@ -323,19 +392,41 @@
       }
 
       let state = loadState();
+      celebratedBingos = new Set(completedBingoIndexes());
 
-      function shuffled(items) {
+      function randomSeed() {
+        if (window.crypto?.getRandomValues) {
+          const value = new Uint32Array(1);
+          window.crypto.getRandomValues(value);
+          return 100000 + (value[0] % 900000);
+        }
+        return 100000 + Math.floor(Math.random() * 900000);
+      }
+
+      function seededRandom(seed) {
+        let value = seed >>> 0;
+        return () => {
+          value += 0x6D2B79F5;
+          let result = value;
+          result = Math.imul(result ^ (result >>> 15), result | 1);
+          result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+          return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function shuffled(items, random = Math.random) {
         const copy = [...items];
         for (let i = copy.length - 1; i > 0; i -= 1) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = Math.floor(random() * (i + 1));
           [copy[i], copy[j]] = [copy[j], copy[i]];
         }
         return copy;
       }
 
-      function makeNewState() {
+      function makeNewState(seed = randomSeed()) {
         return {
-          phrases: shuffled(phrasePool).slice(0, BOARD_SIZE - 1),
+          seed,
+          phrases: shuffled(phrasePool, seededRandom(seed)).slice(0, BOARD_SIZE - 1),
           marked: []
         };
       }
@@ -343,12 +434,14 @@
       function loadState() {
         try {
           const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          const validSeed = Number.isInteger(saved?.seed) && saved.seed > 0 && saved.seed <= 999999999;
           const validPhrases = Array.isArray(saved?.phrases)
             && saved.phrases.length === BOARD_SIZE - 1
             && new Set(saved.phrases).size === BOARD_SIZE - 1
             && saved.phrases.every((phrase) => phrasePool.includes(phrase));
-          if (validPhrases) {
+          if (validSeed && validPhrases) {
             return {
+              seed: saved.seed,
               phrases: saved.phrases,
               marked: Array.isArray(saved.marked)
                 ? saved.marked.filter((index) => Number.isInteger(index) && index >= 0 && index < BOARD_SIZE)
@@ -369,9 +462,21 @@
         return state.phrases[boardIndex < CENTER_INDEX ? boardIndex : boardIndex - 1];
       }
 
+      function completedBingoIndexes() {
+        const marked = new Set(state.marked);
+        return bingoLines
+          .map((line, index) => ({ line, index }))
+          .filter(({ line }) => line.every((index) => marked.has(index)))
+          .map(({ index }) => index);
+      }
+
       function renderBoard() {
         boardElement.replaceChildren();
         const fragment = document.createDocumentFragment();
+        const winningSquares = new Set(
+          completedBingoIndexes().flatMap((index) => bingoLines[index])
+        );
+        seedInput.value = String(state.seed);
 
         for (let index = 0; index < BOARD_SIZE; index += 1) {
           const cell = document.createElement("button");
@@ -396,6 +501,8 @@
             cell.setAttribute("aria-label", `${phrase}. ${isMarked ? "Marked" : "Not marked"}`);
             cell.addEventListener("click", () => toggleSquare(index));
           }
+
+          cell.classList.toggle("winner", winningSquares.has(index));
 
           fragment.appendChild(cell);
         }
@@ -434,11 +541,7 @@
       }
 
       function checkForBingo() {
-        const marked = new Set(state.marked);
-        const completed = bingoLines
-          .map((line, index) => ({ line, index }))
-          .filter(({ line }) => line.every((index) => marked.has(index)))
-          .map(({ index }) => index);
+        const completed = completedBingoIndexes();
         const hasNewBingo = completed.some((index) => !celebratedBingos.has(index));
 
         celebratedBingos = new Set(completed);
@@ -477,7 +580,9 @@
       }
 
       newBoardButton.addEventListener("click", () => {
-        state = makeNewState();
+        let seed = randomSeed();
+        if (seed === state.seed) seed = seed === 999999 ? 100000 : seed + 1;
+        state = makeNewState(seed);
         celebratedBingos.clear();
         saveState();
         renderBoard();
@@ -491,6 +596,60 @@
         renderBoard();
         announce("All marks were cleared.");
       });
+
+      loadSeedButton.addEventListener("click", () => {
+        const value = seedInput.value.trim();
+        if (!/^\d{1,9}$/.test(value) || Number(value) < 1) {
+          announce("Enter a board number from 1 to 999999999.");
+          seedInput.focus();
+          return;
+        }
+
+        state = makeNewState(Number(value));
+        celebratedBingos.clear();
+        saveState();
+        renderBoard();
+        announce(`Board #${state.seed} loaded.`);
+      });
+
+      seedInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadSeedButton.click();
+      });
+
+      function fullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement;
+      }
+
+      function updateFullscreenButton() {
+        const active = Boolean(fullscreenElement());
+        fullscreenButton.textContent = active ? "Exit Full Screen" : "Full Screen";
+        fullscreenButton.setAttribute("aria-pressed", String(active));
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (fullscreenElement()) {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            await exit.call(document);
+          } else {
+            const enter = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+            await enter.call(document.documentElement);
+          }
+          updateFullscreenButton();
+        } catch (error) {
+          console.warn("Full screen mode could not be changed.", error);
+          announce("Full screen mode is not available on this device.");
+        }
+      }
+
+      const canUseFullscreen = Boolean(
+        (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)
+        && (document.exitFullscreen || document.webkitExitFullscreen)
+      );
+      fullscreenButton.hidden = !canUseFullscreen;
+      fullscreenButton.addEventListener("click", toggleFullscreen);
+      document.addEventListener("fullscreenchange", updateFullscreenButton);
+      document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
       function showFatalError(message) {
         boardElement.innerHTML = `<p style="grid-column:1/-1;padding:2rem;text-align:center">${message}</p>`;
