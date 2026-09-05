@@ -194,6 +194,39 @@
       text-align: center;
     }
 
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .cop-confetti {
+      position: absolute;
+      top: -3rem;
+      left: var(--x);
+      font-size: var(--size);
+      filter: drop-shadow(0 3px 2px rgba(0,0,0,.25));
+      animation: cop-confetti-fall var(--duration) cubic-bezier(.18,.72,.35,1) var(--delay) forwards;
+      will-change: transform, opacity;
+    }
+
+    @keyframes cop-confetti-fall {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, -4rem, 0) rotate(0deg) scale(.4);
+      }
+      12% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotate(35deg) scale(1.15);
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--drift), calc(100vh + 7rem), 0) rotate(var(--spin)) scale(.85);
+      }
+    }
+
     @media (max-width: 680px) {
       body { min-width: 0; }
       main {
@@ -220,6 +253,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+      .cop-confetti { animation-duration: .8s; }
     }
   </style>
 </head>
@@ -227,7 +261,7 @@
   <main>
     <header>
       <div>
-        <p class="eyebrow">we didn't do anything wrong</p>
+        <p class="eyebrow">Keep your eyes on the footage</p>
         <h1>Bodycam Bingo</h1>
         <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
       </div>
@@ -256,6 +290,21 @@
       const newBoardButton = document.getElementById("new-board");
       const resetMarksButton = document.getElementById("reset-marks");
       let textFitFrame;
+      let celebratedBingos = new Set();
+      const bingoLines = [
+        [0, 1, 2, 3, 4],
+        [5, 6, 7, 8, 9],
+        [10, 11, 12, 13, 14],
+        [15, 16, 17, 18, 19],
+        [20, 21, 22, 23, 24],
+        [0, 5, 10, 15, 20],
+        [1, 6, 11, 16, 21],
+        [2, 7, 12, 17, 22],
+        [3, 8, 13, 18, 23],
+        [4, 9, 14, 19, 24],
+        [0, 6, 12, 18, 24],
+        [4, 8, 12, 16, 20]
+      ];
 
       if (!window.BINGO_DATA || !Array.isArray(window.BINGO_DATA.phrases)) {
         showFatalError("Could not load the phrase list. Make sure squares.js is beside index.html.");
@@ -381,6 +430,45 @@
         state.marked = [...marked].sort((a, b) => a - b);
         saveState();
         renderBoard();
+        checkForBingo();
+      }
+
+      function checkForBingo() {
+        const marked = new Set(state.marked);
+        const completed = bingoLines
+          .map((line, index) => ({ line, index }))
+          .filter(({ line }) => line.every((index) => marked.has(index)))
+          .map(({ index }) => index);
+        const hasNewBingo = completed.some((index) => !celebratedBingos.has(index));
+
+        celebratedBingos = new Set(completed);
+        if (hasNewBingo) {
+          announce("BINGO! 🚓 🚨 👮");
+          launchCopConfetti();
+        }
+      }
+
+      function launchCopConfetti() {
+        const emojis = ["🚓", "🚨", "👮"];
+        const layer = document.createElement("div");
+        layer.className = "confetti-layer";
+        layer.setAttribute("aria-hidden", "true");
+
+        for (let index = 0; index < 54; index += 1) {
+          const piece = document.createElement("span");
+          piece.className = "cop-confetti";
+          piece.textContent = emojis[index % emojis.length];
+          piece.style.setProperty("--x", `${Math.random() * 100}%`);
+          piece.style.setProperty("--size", `${1.1 + Math.random() * 1.6}rem`);
+          piece.style.setProperty("--duration", `${2.5 + Math.random() * 1.8}s`);
+          piece.style.setProperty("--delay", `${Math.random() * .65}s`);
+          piece.style.setProperty("--drift", `${-90 + Math.random() * 180}px`);
+          piece.style.setProperty("--spin", `${-540 + Math.random() * 1080}deg`);
+          layer.appendChild(piece);
+        }
+
+        document.body.appendChild(layer);
+        setTimeout(() => layer.remove(), 5000);
       }
 
       function announce(message) {
@@ -390,6 +478,7 @@
 
       newBoardButton.addEventListener("click", () => {
         state = makeNewState();
+        celebratedBingos.clear();
         saveState();
         renderBoard();
         announce("A new random board is ready.");
@@ -397,6 +486,7 @@
 
       resetMarksButton.addEventListener("click", () => {
         state.marked = [];
+        celebratedBingos.clear();
         saveState();
         renderBoard();
         announce("All marks were cleared.");
