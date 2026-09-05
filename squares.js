@@ -44,6 +44,8 @@ window.BINGO_DATA = {
     "Slips out of cuffs",
     "Flirts with cops",
     "\"You're gonna get another charge if you keep acting like this\"",
-    "Spit hood"
+    "Spit hood",
+    "Demands supervisor",
+    "Weaponizes mental illness"
   ]
 };
