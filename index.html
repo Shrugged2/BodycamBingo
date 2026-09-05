@@ -323,7 +323,7 @@
   <main>
     <header>
       <div>
-        <p class="eyebrow">Keep your eyes on the footage</p>
+        <p class="eyebrow" id="rotating-tagline">Keep your eyes on the footage</p>
         <h1>Bodycam Bingo</h1>
         <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
       </div>
@@ -363,8 +363,19 @@
       const seedInput = document.getElementById("board-seed");
       const loadSeedButton = document.getElementById("load-seed");
       const shareBoardButton = document.getElementById("share-board");
+      const taglineElement = document.getElementById("rotating-tagline");
       let textFitFrame;
       let celebratedBingos = new Set();
+      const taglines = [
+        "Keep your eyes on the footage",
+        "We didn't do anything wrong",
+        "Stop resisting",
+        "Sir, this is a bingo card",
+        "Please remain dramatically calm",
+        "The camera was already rolling",
+        "That's not how this works",
+        "Another completely normal interaction"
+      ];
       const bingoLines = [
         [0, 1, 2, 3, 4],
         [5, 6, 7, 8, 9],
@@ -432,6 +443,28 @@
 
       function haptic(pattern = 18) {
         if (typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+      }
+
+      function chooseTagline() {
+        const storageKey = "bodycam-bingo-last-tagline";
+        let previousIndex = -1;
+        try {
+          previousIndex = Number(localStorage.getItem(storageKey));
+        } catch (error) {
+          console.warn("The previous tagline could not be read.", error);
+        }
+
+        const choices = taglines
+          .map((_, index) => index)
+          .filter((index) => index !== previousIndex);
+        const taglineIndex = choices[Math.floor(Math.random() * choices.length)];
+        taglineElement.textContent = taglines[taglineIndex];
+
+        try {
+          localStorage.setItem(storageKey, String(taglineIndex));
+        } catch (error) {
+          console.warn("The tagline choice could not be saved.", error);
+        }
       }
 
       function randomSeed() {
@@ -797,6 +830,7 @@
       }
 
       window.addEventListener("resize", fitBoardText);
+      chooseTagline();
       saveState();
       renderBoard();
     })();
