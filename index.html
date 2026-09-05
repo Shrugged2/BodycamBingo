@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingo Board</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --border: #222222;
+      --marked: #37b24d;
+      --marked-text: #ffffff;
+      --button: #222222;
+      --button-text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: #111;
+      display: flex;
+      justify-content: center;
+      padding: 24px 12px;
+    }
+
+    .app {
+      width: min(900px, 100%);
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 18px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--button);
+      color: var(--button-text);
+    }
+
+    button.secondary {
+      background: #666;
+    }
+
+    .status {
+      text-align: center;
+      margin: 0 0 12px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+
+    .cell {
+      aspect-ratio: 1 / 1;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px;
+      font-weight: 700;
+      font-size: clamp(11px, 2vw, 18px);
+      line-height: 1.2;
+      cursor: pointer;
+      user-select: none;
+      overflow-wrap: anywhere;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+    }
+
+    .cell:active {
+      transform: scale(0.98);
+    }
+
+    .cell.marked {
+      background: var(--marked);
+      color: var(--marked-text);
+    }
+
+    .cell textarea {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font: inherit;
+      text-align: center;
+      color: inherit;
+      padding: 4px;
+    }
+
+    .cell.editing {
+      cursor: text;
+      user-select: text;
+      background: #fffbe6;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 14px 6px;
+      }
+
+      .board {
+        gap: 3px;
+      }
+
+      .cell {
+        border-width: 1px;
+        border-radius: 5px;
+        padding: 4px;
+      }
+
+      button {
+        font-size: 14px;
+        padding: 9px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Bingo</h1>
+
+    <div class="controls">
+      <button id="editButton">Edit Board</button>
+      <button id="resetButton" class="secondary">Reset Marks</button>
+    </div>
+
+    <p id="status" class="status">
+      Click a square to mark it. Use Edit Board to change the text.
+    </p>
+
+    <div id="board" class="board"></div>
+  </main>
+
+  <script>
+    const board = document.getElementById("board");
+    const editButton = document.getElementById("editButton");
+    const resetButton = document.getElementById("resetButton");
+    const status = document.getElementById("status");
+
+    let editing = false;
+
+    // Change these default labels if you want the board pre-filled.
+    const defaultSquares = Array.from(
+      { length: 25 },
+      (_, index) => `Square ${index + 1}`
+    );
+
+    // Save the square text in the browser so it survives page refreshes.
+    let squareText =
+      JSON.parse(localStorage.getItem("bingoSquareText")) || defaultSquares;
+
+    // Save marked squares too.
+    let markedSquares =
+      JSON.parse(localStorage.getItem("bingoMarkedSquares")) ||
+      Array(25).fill(false);
+
+    function saveBoard() {
+      localStorage.setItem("bingoSquareText", JSON.stringify(squareText));
+      localStorage.setItem(
+        "bingoMarkedSquares",
+        JSON.stringify(markedSquares)
+      );
+    }
+
+    function renderBoard() {
+      board.innerHTML = "";
+
+      squareText.forEach((text, index) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+
+        if (markedSquares[index]) {
+          cell.classList.add("marked");
+        }
+
+        if (editing) {
+          cell.classList.add("editing");
+
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("aria-label", `Bingo square ${index + 1}`);
+
+          textarea.addEventListener("input", (event) => {
+            squareText[index] = event.target.value;
+            saveBoard();
+          });
+
+          cell.appendChild(textarea);
+        } else {
+          cell.textContent = text;
+
+          cell.addEventListener("click", () => {
+            markedSquares[index] = !markedSquares[index];
+            saveBoard();
+            renderBoard();
+          });
+        }
+
+        board.appendChild(cell);
+      });
+    }
+
+    editButton.addEventListener("click", () => {
+      editing = !editing;
+
+      editButton.textContent = editing ? "Done Editing" : "Edit Board";
+      status.textContent = editing
+        ? "Type directly into each square. Your text saves automatically."
+        : "Click a square to mark it. Use Edit Board to change the text.";
+
+      renderBoard();
+    });
+
+    resetButton.addEventListener("click", () => {
+      markedSquares = Array(25).fill(false);
+      saveBoard();
+      renderBoard();
+    });
+
+    renderBoard();
+  </script>
+</body>
+</html>
