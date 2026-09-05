@@ -1,5 +1,6 @@
 // Edit this list to add, remove, reword, or reclassify bingo phrases.
 // Every board draws 12 common, 8 uncommon, and 4 rare prompts.
+// Prompts with the same group cannot appear together on one board.
 window.BINGO_DATA = {
   balance: {
     common: 12,
@@ -21,7 +22,7 @@ window.BINGO_DATA = {
     { text: "Demands to call someone (dad, president)", tier: "common" },
     { text: "Bring out the WRAP", tier: "rare" },
     { text: "Losing clothing items", tier: "uncommon" },
-    { text: "Wisconsin", tier: "rare" },
+    { text: "Wisconsin", tier: "rare", group: "location" },
     { text: "Switcheroo: person claiming to be the victim is the baddie", tier: "uncommon" },
     { text: "Blaming someone else for their predicament", tier: "common" },
     { text: "Violence against inanimate objects", tier: "uncommon" },
@@ -34,7 +35,8 @@ window.BINGO_DATA = {
     { text: "Attempts to negotiate", tier: "common" },
     { text: "Sovereign citizen behavior", tier: "uncommon" },
     { text: "Tool tornado", tier: "uncommon" },
-    { text: "Florida", tier: "uncommon" },
+    { text: "Florida", tier: "uncommon", group: "location" },
+    { text: "Ohio", tier: "uncommon", group: "location" },
     { text: "Wearing Dallas Cowboys apparel", tier: "rare" },
     { text: "Asks for vape", tier: "uncommon" },
     { text: "\"Why are you doing this to me?\"", tier: "common" },

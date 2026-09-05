@@ -347,7 +347,7 @@
     <p class="status" id="status" role="status" aria-live="polite"></p>
   </main>
 
-  <script src="squares.js"></script>
+  <script src="squares.js?v=balanced-3"></script>
   <script>
     (() => {
       "use strict";
@@ -392,7 +392,8 @@
           ? { text: entry.trim(), tier: "uncommon" }
           : {
               text: String(entry?.text ?? "").trim(),
-              tier: String(entry?.tier ?? "").toLowerCase()
+              tier: String(entry?.tier ?? "").toLowerCase(),
+              group: String(entry?.group ?? "").trim().toLowerCase()
             })
         .filter((entry) => entry.text && tierNames.includes(entry.tier))
         .filter((entry) => {
@@ -402,6 +403,7 @@
         });
       const phrasePool = phraseEntries.map((entry) => entry.text);
       const phraseTier = new Map(phraseEntries.map((entry) => [entry.text, entry.tier]));
+      const phraseGroup = new Map(phraseEntries.map((entry) => [entry.text, entry.group || ""]));
       const boardBalance = Object.fromEntries(
         tierNames.map((tier) => [tier, Number(window.BINGO_DATA.balance?.[tier] ?? 0)])
       );
@@ -463,12 +465,25 @@
 
       function makeNewState(seed = randomSeed()) {
         const random = seededRandom(seed);
-        const selected = tierNames.flatMap((tier) =>
-          shuffled(
-            phraseEntries.filter((entry) => entry.tier === tier),
-            random
-          ).slice(0, boardBalance[tier])
-        );
+        let selected = [];
+
+        for (let attempt = 0; attempt < 200; attempt += 1) {
+          const candidate = tierNames.flatMap((tier) =>
+            shuffled(
+              phraseEntries.filter((entry) => entry.tier === tier),
+              random
+            ).slice(0, boardBalance[tier])
+          );
+
+          if (!hasExclusiveGroupConflict(candidate.map((entry) => entry.text))) {
+            selected = candidate;
+            break;
+          }
+        }
+
+        if (selected.length !== BOARD_SIZE - 1) {
+          throw new Error("Could not create a board without conflicting phrase groups.");
+        }
 
         return {
           seed,
@@ -483,6 +498,17 @@
         );
       }
 
+      function hasExclusiveGroupConflict(phrases) {
+        const usedGroups = new Set();
+        for (const phrase of phrases) {
+          const group = phraseGroup.get(phrase);
+          if (!group) continue;
+          if (usedGroups.has(group)) return true;
+          usedGroups.add(group);
+        }
+        return false;
+      }
+
       function loadState() {
         try {
           const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -492,7 +518,8 @@
             && new Set(saved.phrases).size === BOARD_SIZE - 1
             && saved.phrases.every((phrase) => phrasePool.includes(phrase));
           const validBalance = validPhrases && hasBalancedMix(saved.phrases);
-          if (validSeed && validPhrases && validBalance) {
+          const validGroups = validPhrases && !hasExclusiveGroupConflict(saved.phrases);
+          if (validSeed && validPhrases && validBalance && validGroups) {
             return {
               seed: saved.seed,
               phrases: saved.phrases,
