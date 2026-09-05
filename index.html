@@ -214,6 +214,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-wrap: wrap;
       gap: .55rem;
       margin: .8rem 0 0;
     }
@@ -320,7 +321,7 @@
   <main>
     <header>
       <div>
-        <p class="eyebrow">we didn't do anything wrong</p>
+        <p class="eyebrow">Keep your eyes on the footage</p>
         <h1>Bodycam Bingo</h1>
         <p class="subtitle">Tap a phrase to mark it. Every new board draws 24 unique phrases from the full pool.</p>
       </div>
@@ -339,6 +340,7 @@
       <label for="board-seed">Board #</label>
       <input class="seed-input" id="board-seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off" aria-describedby="status">
       <button class="action" id="load-seed" type="button">Load Board</button>
+      <button class="action primary" id="share-board" type="button">Share Board</button>
     </div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
   </main>
@@ -358,6 +360,7 @@
       const fullscreenButton = document.getElementById("fullscreen");
       const seedInput = document.getElementById("board-seed");
       const loadSeedButton = document.getElementById("load-seed");
+      const shareBoardButton = document.getElementById("share-board");
       let textFitFrame;
       let celebratedBingos = new Set();
       const bingoLines = [
@@ -392,7 +395,18 @@
       }
 
       let state = loadState();
+      const linkedSeed = parseSeed(new URLSearchParams(window.location.search).get("board"));
+      if (linkedSeed && linkedSeed !== state.seed) state = makeNewState(linkedSeed);
       celebratedBingos = new Set(completedBingoIndexes());
+
+      function parseSeed(value) {
+        const text = String(value ?? "").trim();
+        return /^\d{1,9}$/.test(text) && Number(text) > 0 ? Number(text) : null;
+      }
+
+      function haptic(pattern = 18) {
+        if (typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+      }
 
       function randomSeed() {
         if (window.crypto?.getRandomValues) {
@@ -458,6 +472,16 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
 
+      function boardUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set("board", String(state.seed));
+        return url;
+      }
+
+      function updateBoardUrl() {
+        window.history.replaceState(null, "", boardUrl());
+      }
+
       function phraseAt(boardIndex) {
         return state.phrases[boardIndex < CENTER_INDEX ? boardIndex : boardIndex - 1];
       }
@@ -477,6 +501,7 @@
           completedBingoIndexes().flatMap((index) => bingoLines[index])
         );
         seedInput.value = String(state.seed);
+        updateBoardUrl();
 
         for (let index = 0; index < BOARD_SIZE; index += 1) {
           const cell = document.createElement("button");
@@ -537,6 +562,7 @@
         state.marked = [...marked].sort((a, b) => a - b);
         saveState();
         renderBoard();
+        haptic(18);
         checkForBingo();
       }
 
@@ -547,6 +573,7 @@
         celebratedBingos = new Set(completed);
         if (hasNewBingo) {
           announce("BINGO! 🚓 🚨 👮");
+          haptic([80, 45, 80, 45, 160]);
           launchCopConfetti();
         }
       }
@@ -584,6 +611,7 @@
         if (seed === state.seed) seed = seed === 999999 ? 100000 : seed + 1;
         state = makeNewState(seed);
         celebratedBingos.clear();
+        haptic(25);
         saveState();
         renderBoard();
         announce("A new random board is ready.");
@@ -592,21 +620,23 @@
       resetMarksButton.addEventListener("click", () => {
         state.marked = [];
         celebratedBingos.clear();
+        haptic(12);
         saveState();
         renderBoard();
         announce("All marks were cleared.");
       });
 
       loadSeedButton.addEventListener("click", () => {
-        const value = seedInput.value.trim();
-        if (!/^\d{1,9}$/.test(value) || Number(value) < 1) {
+        const seed = parseSeed(seedInput.value);
+        if (!seed) {
           announce("Enter a board number from 1 to 999999999.");
           seedInput.focus();
           return;
         }
 
-        state = makeNewState(Number(value));
+        state = makeNewState(seed);
         celebratedBingos.clear();
+        haptic(25);
         saveState();
         renderBoard();
         announce(`Board #${state.seed} loaded.`);
@@ -614,6 +644,34 @@
 
       seedInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadSeedButton.click();
+      });
+
+      shareBoardButton.addEventListener("click", async () => {
+        const url = boardUrl().toString();
+        const shareData = {
+          title: "Bodycam Bingo",
+          text: `Play Bodycam Bingo board #${state.seed}`,
+          url
+        };
+
+        haptic(18);
+        if (typeof navigator.share === "function") {
+          try {
+            await navigator.share(shareData);
+            announce(`Board #${state.seed} shared.`);
+            return;
+          } catch (error) {
+            if (error.name === "AbortError") return;
+          }
+        }
+
+        try {
+          await navigator.clipboard.writeText(url);
+          announce(`Link for board #${state.seed} copied.`);
+        } catch (error) {
+          console.warn("The board link could not be copied.", error);
+          announce(`Share board #${state.seed}.`);
+        }
       });
 
       function fullscreenElement() {
