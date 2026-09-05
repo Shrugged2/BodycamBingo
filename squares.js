@@ -41,7 +41,7 @@ window.BINGO_DATA = {
     { text: "Feigning confusion", tier: "common" },
     { text: "\"We're past that point\"", tier: "uncommon" },
     { text: "Weaponizing mental illness or disability", tier: "uncommon" },
-    { text: "Handcuffs clearly made of razor blades", tier: "rare" },
+    { text: "Handcuffs clearly made of razor blades", tier: "common" },
     { text: "Losing privileges due to bad behavior", tier: "common" },
     { text: "Purposely misunderstands something clear", tier: "common" },
     { text: "\"I'll be honest\" - proceeds to lie", tier: "common" },
@@ -51,9 +51,9 @@ window.BINGO_DATA = {
     { text: "Flirts with cops", tier: "rare" },
     { text: "\"You're gonna get another charge if you keep acting like this\"", tier: "common" },
     { text: "Spit hood", tier: "rare" },
-    { text: "Demands supervisor", tier: "common" },
+    { text: "Demands supervisor", tier: "uncommon" },
     { text: "Weaponizes mental illness", tier: "uncommon" },
-    { text: "Wishes ill in the cop or their family", tier: "common" },
+    { text: "Wishes ill in the cop or their family", tier: "uncommon" },
     { text: "Cookie monster fashion sense", tier: "uncommon" }
   ]
 };
