@@ -385,14 +385,36 @@
         return;
       }
 
-      const phrasePool = [...new Set(
-        window.BINGO_DATA.phrases
-          .map((phrase) => String(phrase).trim())
-          .filter(Boolean)
-      )];
+      const tierNames = ["common", "uncommon", "rare"];
+      const seenPhrases = new Set();
+      const phraseEntries = window.BINGO_DATA.phrases
+        .map((entry) => typeof entry === "string"
+          ? { text: entry.trim(), tier: "uncommon" }
+          : {
+              text: String(entry?.text ?? "").trim(),
+              tier: String(entry?.tier ?? "").toLowerCase()
+            })
+        .filter((entry) => entry.text && tierNames.includes(entry.tier))
+        .filter((entry) => {
+          if (seenPhrases.has(entry.text)) return false;
+          seenPhrases.add(entry.text);
+          return true;
+        });
+      const phrasePool = phraseEntries.map((entry) => entry.text);
+      const phraseTier = new Map(phraseEntries.map((entry) => [entry.text, entry.tier]));
+      const boardBalance = Object.fromEntries(
+        tierNames.map((tier) => [tier, Number(window.BINGO_DATA.balance?.[tier] ?? 0)])
+      );
+      const balanceTotal = tierNames.reduce((total, tier) => total + boardBalance[tier], 0);
+      const balanceIsValid = balanceTotal === BOARD_SIZE - 1
+        && tierNames.every((tier) =>
+          Number.isInteger(boardBalance[tier])
+          && boardBalance[tier] >= 0
+          && phraseEntries.filter((entry) => entry.tier === tier).length >= boardBalance[tier]
+        );
 
-      if (phrasePool.length < BOARD_SIZE - 1) {
-        showFatalError(`The phrase list needs at least ${BOARD_SIZE - 1} unique entries.`);
+      if (!balanceIsValid) {
+        showFatalError(`The phrase tiers must provide exactly ${BOARD_SIZE - 1} balanced squares.`);
         return;
       }
 
@@ -440,11 +462,25 @@
       }
 
       function makeNewState(seed = randomSeed()) {
+        const random = seededRandom(seed);
+        const selected = tierNames.flatMap((tier) =>
+          shuffled(
+            phraseEntries.filter((entry) => entry.tier === tier),
+            random
+          ).slice(0, boardBalance[tier])
+        );
+
         return {
           seed,
-          phrases: shuffled(phrasePool, seededRandom(seed)).slice(0, BOARD_SIZE - 1),
+          phrases: shuffled(selected, random).map((entry) => entry.text),
           marked: []
         };
+      }
+
+      function hasBalancedMix(phrases) {
+        return tierNames.every((tier) =>
+          phrases.filter((phrase) => phraseTier.get(phrase) === tier).length === boardBalance[tier]
+        );
       }
 
       function loadState() {
@@ -455,7 +491,8 @@
             && saved.phrases.length === BOARD_SIZE - 1
             && new Set(saved.phrases).size === BOARD_SIZE - 1
             && saved.phrases.every((phrase) => phrasePool.includes(phrase));
-          if (validSeed && validPhrases) {
+          const validBalance = validPhrases && hasBalancedMix(saved.phrases);
+          if (validSeed && validPhrases && validBalance) {
             return {
               seed: saved.seed,
               phrases: saved.phrases,
