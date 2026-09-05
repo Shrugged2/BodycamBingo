@@ -11,6 +11,7 @@ Keep both files in the same folder. Open `index.html` to play locally, or upload
 
 ## Controls
 
+- Play at https://shrugged2.github.io/BodycamBingo/ 
 - Click or tap any square, including the free space, to toggle its green mark.
 - **New Board** draws a fresh set of 24 phrases and clears marks.
 - **Reset Marks** clears the current marks without changing the board.
