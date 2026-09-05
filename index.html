@@ -163,12 +163,6 @@
       box-shadow:
         inset 0 0 0 clamp(2px, .45vw, 4px) var(--gold),
         0 0 1rem rgba(242,193,78,.9);
-      animation: winning-line-pulse .85s ease-in-out infinite alternate;
-    }
-
-    @keyframes winning-line-pulse {
-      from { box-shadow: inset 0 0 0 2px var(--gold), 0 0 .35rem rgba(242,193,78,.55); }
-      to { box-shadow: inset 0 0 0 4px var(--gold), 0 0 1.25rem rgba(242,193,78,1); }
     }
 
     .square.free {
@@ -312,7 +306,6 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
-      .square.winner { animation: none; }
       .cop-confetti { animation-duration: .8s; }
     }
   </style>
