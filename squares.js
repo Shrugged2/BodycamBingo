@@ -46,6 +46,8 @@ window.BINGO_DATA = {
     "\"You're gonna get another charge if you keep acting like this\"",
     "Spit hood",
     "Demands supervisor",
-    "Weaponizes mental illness"
+    "Weaponizes mental illness",
+    "Wishes ill in the cop or their family",
+    "Cookie monster fashion sense"
   ]
 };
